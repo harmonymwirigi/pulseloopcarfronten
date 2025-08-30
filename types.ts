@@ -88,3 +88,10 @@ export interface CreateBlogData {
     content: string;
     coverImage?: File;
 }
+
+export type MessageSender = 'USER' | 'AI';
+
+export interface ChatMessage {
+    sender: MessageSender;
+    text: string;
+}

@@ -1,5 +1,4 @@
-
-import { User, Post, Comment, Reaction, ReactionType, Resource, Blog, CreateResourceData, CreateBlogData } from '../types';
+import { User, Post, Comment, Reaction, ReactionType, Resource, Blog, CreateResourceData, CreateBlogData, ChatMessage } from '../types';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
@@ -130,5 +129,13 @@ export const createBlog = (data: CreateBlogData): Promise<Blog> => {
     return fetchWithAuth('/blogs', {
         method: 'POST',
         body: formData,
+    });
+};
+
+// --- AI CHAT ---
+export const getAiChatResponse = (message: string, history: ChatMessage[]): Promise<{ reply: string }> => {
+    return fetchWithAuth('/ai/chat', {
+        method: 'POST',
+        body: JSON.stringify({ message, history }),
     });
 };

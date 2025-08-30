@@ -10,6 +10,7 @@ import LandingPage from './components/LandingPage';
 import { Post, Role } from './types';
 import Spinner from './components/Spinner';
 import SinglePostView from './components/SinglePostView';
+import Chatbot from './components/Chatbot';
 
 // FIX: Added 'LOGIN' and 'SIGNUP' to the View type to make it compatible with the Header component's navigateTo prop.
 type View = 'FEED' | 'ADMIN' | 'PROFILE' | 'RESOURCES' | 'BLOGS' | 'SINGLE_POST' | 'LOGIN' | 'SIGNUP';
@@ -52,6 +53,7 @@ const AppContent: React.FC = () => {
                 {currentView === 'ADMIN' && user.role === Role.ADMIN && <AdminDashboard />}
                 {currentView === 'ADMIN' && user.role !== Role.ADMIN && <p className="text-center text-red-500">Access Denied. You are not an admin.</p>}
             </main>
+            <Chatbot />
         </div>
     );
 };
