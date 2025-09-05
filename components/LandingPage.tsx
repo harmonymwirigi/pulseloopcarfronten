@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import AuthModal from './AuthModal';
+import PrivacyPolicy from './PrivacyPolicy';
 
 const testimonials = [
     { 
@@ -26,12 +26,30 @@ const testimonials = [
 const LandingPage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'login' | 'signup'>('login');
+    const [invitationToken, setInvitationToken] = useState<string | null>(null);
     const [currentTestimonial, setCurrentTestimonial] = useState(0);
+    const [showPolicy, setShowPolicy] = useState(false);
 
-    const openModal = (mode: 'login' | 'signup') => {
+    const openModal = (mode: 'login' | 'signup', token: string | null = null) => {
         setModalMode(mode);
+        setInvitationToken(token);
         setIsModalOpen(true);
     };
+    
+    const viewPolicy = () => {
+        setIsModalOpen(false);
+        setShowPolicy(true);
+    };
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        if (token) {
+            // Remove token from URL to keep it clean, but keep it in state
+            window.history.replaceState({}, document.title, window.location.pathname);
+            openModal('signup', token);
+        }
+    }, []);
     
     const nextTestimonial = useCallback(() => {
         setCurrentTestimonial(prev => (prev + 1) % testimonials.length);
@@ -48,10 +66,13 @@ const LandingPage: React.FC = () => {
         return () => clearInterval(timer);
     }, [nextTestimonial]);
 
+    if (showPolicy) {
+        return <PrivacyPolicy onClose={() => setShowPolicy(false)} />;
+    }
 
     return (
         <div className="bg-white font-sans">
-            {isModalOpen && <AuthModal initialMode={modalMode} onClose={() => setIsModalOpen(false)} />}
+            {isModalOpen && <AuthModal initialMode={modalMode} onClose={() => setIsModalOpen(false)} invitationToken={invitationToken} onViewPolicy={viewPolicy} />}
             
             {/* Header */}
             <header className="absolute top-0 left-0 w-full z-10 py-4 px-4 sm:px-8">
@@ -123,7 +144,7 @@ const LandingPage: React.FC = () => {
                                 description="Connect and collaborate with a verified network of healthcare professionals. Discuss complex cases in a secure, compliant environment."
                             />
                             <FeatureCard 
-                                icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3h9M7 16h6M7 12h6M7 8h6" /></svg>}
+                                icon={<svg xmlns="http://www.w.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3h9M7 16h6M7 12h6M7 8h6" /></svg>}
                                 title="Shared Resource Hub"
                                 description="Access and contribute to a growing library of articles, research papers, and best-practice guidelines shared by the community."
                             />
@@ -202,8 +223,9 @@ const LandingPage: React.FC = () => {
 
             {/* Footer */}
             <footer className="bg-gray-800 text-white py-6">
-                <div className="container mx-auto text-center">
-                    <p>&copy; {new Date().getFullYear()} PulseLoopCare. All rights reserved.</p>
+                <div className="container mx-auto text-center text-gray-400">
+                    <p className="mb-2">&copy; {new Date().getFullYear()} PulseLoopCare. All rights reserved.</p>
+                    <button onClick={() => setShowPolicy(true)} className="hover:text-white underline transition-colors">Privacy Policy & Terms of Use</button>
                 </div>
             </footer>
         </div>

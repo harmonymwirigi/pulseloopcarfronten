@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { getPendingUsers, approveUser, getPendingResources, approveResource, getPendingBlogs, approveBlog } from '../services/mockApi';
 import { User, Resource, Blog } from '../types';
 import Spinner from './Spinner';
+import ApprovalDetailView from './ApprovalDetailView';
 
 type Tab = 'USERS' | 'RESOURCES' | 'BLOGS';
 
@@ -14,54 +14,63 @@ const AdminDashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [approvingId, setApprovingId] = useState<string | null>(null);
+    const [viewingItem, setViewingItem] = useState<Resource | Blog | null>(null);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            if (activeTab === 'USERS') {
-                const users = await getPendingUsers();
-                setPendingUsers(users);
-            } else if (activeTab === 'RESOURCES') {
-                const resources = await getPendingResources();
-                setPendingResources(resources);
-            } else if (activeTab === 'BLOGS') {
-                const blogs = await getPendingBlogs();
-                setPendingBlogs(blogs);
-            }
+            const users = await getPendingUsers();
+            setPendingUsers(users);
+            const resources = await getPendingResources();
+            setPendingResources(resources);
+            const blogs = await getPendingBlogs();
+            setPendingBlogs(blogs);
         } catch (err) {
-            setError(`Failed to fetch pending ${activeTab.toLowerCase()}.`);
+            setError(`Failed to fetch pending items.`);
         } finally {
             setLoading(false);
         }
-    }, [activeTab]);
+    }, []);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
 
-    const handleApprove = async (id: string) => {
+    const handleApprove = async (id: string, type: 'USER' | 'RESOURCE' | 'BLOG') => {
         setApprovingId(id);
         try {
-            if (activeTab === 'USERS') {
+            if (type === 'USER') {
                 await approveUser(id);
                 setPendingUsers(prev => prev.filter(item => item.id !== id));
-            } else if (activeTab === 'RESOURCES') {
+            } else if (type === 'RESOURCE') {
                 await approveResource(id);
                 setPendingResources(prev => prev.filter(item => item.id !== id));
-            } else if (activeTab === 'BLOGS') {
+            } else if (type === 'BLOG') {
                 await approveBlog(id);
                 setPendingBlogs(prev => prev.filter(item => item.id !== id));
             }
+            setViewingItem(null); // Return to list view after approval
         } catch (err) {
-            setError(`Failed to approve ${activeTab.slice(0, -1).toLowerCase()}.`);
+            setError(`Failed to approve item.`);
         } finally {
             setApprovingId(null);
         }
     };
     
+    if (viewingItem) {
+        return (
+            <ApprovalDetailView
+                item={viewingItem}
+                onApprove={handleApprove}
+                onBack={() => setViewingItem(null)}
+                isApproving={approvingId === viewingItem.id}
+            />
+        );
+    }
+    
     const renderContent = () => {
-        if (loading) return <div className="flex justify-center mt-8"><Spinner size="lg" /></div>;
+        if (loading) return <div className="flex justify-center mt-8"><Spinner size="lg" color="teal" /></div>;
         if (error) return <p className="text-center text-red-500 mt-4">{error}</p>;
 
         switch(activeTab) {
@@ -71,11 +80,11 @@ const AdminDashboard: React.FC = () => {
                 ) : <p className="text-gray-500 text-center py-8">No pending user approvals.</p>;
             case 'RESOURCES':
                  return pendingResources.length > 0 ? (
-                    <ResourceTable resources={pendingResources} onApprove={handleApprove} approvingId={approvingId} />
+                    <ResourceTable resources={pendingResources} onView={setViewingItem} />
                 ) : <p className="text-gray-500 text-center py-8">No pending resource approvals.</p>;
             case 'BLOGS':
                 return pendingBlogs.length > 0 ? (
-                    <BlogTable blogs={pendingBlogs} onApprove={handleApprove} approvingId={approvingId} />
+                    <BlogTable blogs={pendingBlogs} onView={setViewingItem} />
                 ) : <p className="text-gray-500 text-center py-8">No pending blog approvals.</p>;
             default:
                 return null;
@@ -86,28 +95,29 @@ const AdminDashboard: React.FC = () => {
         <div className="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-lg">
             <h2 className="text-3xl font-bold text-gray-800 mb-6 border-b pb-4">Admin Dashboard</h2>
             <div className="flex border-b mb-6">
-                <TabButton title="Users" activeTab={activeTab} onClick={() => setActiveTab('USERS')} />
-                <TabButton title="Resources" activeTab={activeTab} onClick={() => setActiveTab('RESOURCES')} />
-                <TabButton title="Blogs" activeTab={activeTab} onClick={() => setActiveTab('BLOGS')} />
+                <TabButton title="Users" count={pendingUsers.length} activeTab={activeTab} onClick={() => setActiveTab('USERS')} />
+                <TabButton title="Resources" count={pendingResources.length} activeTab={activeTab} onClick={() => setActiveTab('RESOURCES')} />
+                <TabButton title="Blogs" count={pendingBlogs.length} activeTab={activeTab} onClick={() => setActiveTab('BLOGS')} />
             </div>
             {renderContent()}
         </div>
     );
 };
 
-const TabButton: React.FC<{title: string, activeTab: string, onClick: () => void}> = ({ title, activeTab, onClick }) => {
+const TabButton: React.FC<{title: string, count: number, activeTab: string, onClick: () => void}> = ({ title, count, activeTab, onClick }) => {
     const isActive = activeTab === title.toUpperCase();
     return (
         <button
             onClick={onClick}
-            className={`py-2 px-4 font-medium text-sm ${isActive ? 'border-b-2 border-teal-500 text-teal-600' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`flex items-center space-x-2 py-2 px-4 font-medium text-sm ${isActive ? 'border-b-2 border-teal-500 text-teal-600' : 'text-gray-500 hover:text-gray-700'}`}
         >
-            {title}
+            <span>{title}</span>
+            {count > 0 && <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isActive ? 'bg-teal-100 text-teal-700' : 'bg-gray-200 text-gray-600'}`}>{count}</span>}
         </button>
     );
 }
 
-const UserTable: React.FC<{users: User[], onApprove: (id: string) => void, approvingId: string | null}> = ({ users, onApprove, approvingId }) => (
+const UserTable: React.FC<{users: User[], onApprove: (id: string, type: 'USER') => void, approvingId: string | null}> = ({ users, onApprove, approvingId }) => (
     <TableWrapper headers={["User", "Email", "Status", "Action"]}>
         {users.map(user => (
             <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50">
@@ -119,13 +129,13 @@ const UserTable: React.FC<{users: User[], onApprove: (id: string) => void, appro
                 </td>
                 <td className="py-3 px-4">{user.email}</td>
                 <td className="py-3 px-4"><StatusBadge text={user.role} /></td>
-                <td className="py-3 px-4"><ApproveButton id={user.id} onApprove={onApprove} approvingId={approvingId} /></td>
+                <td className="py-3 px-4"><ApproveButton id={user.id} onApprove={() => onApprove(user.id, 'USER')} approvingId={approvingId} /></td>
             </tr>
         ))}
     </TableWrapper>
 );
 
-const ResourceTable: React.FC<{resources: Resource[], onApprove: (id: string) => void, approvingId: string | null}> = ({ resources, onApprove, approvingId }) => (
+const ResourceTable: React.FC<{resources: Resource[], onView: (resource: Resource) => void}> = ({ resources, onView }) => (
     <TableWrapper headers={["Author", "Title", "Type", "Status", "Action"]}>
         {resources.map(res => (
             <tr key={res.id} className="border-b border-gray-200 hover:bg-gray-50">
@@ -133,20 +143,20 @@ const ResourceTable: React.FC<{resources: Resource[], onApprove: (id: string) =>
                 <td className="py-3 px-4">{res.title}</td>
                 <td className="py-3 px-4">{res.type}</td>
                 <td className="py-3 px-4"><StatusBadge text={res.status} /></td>
-                <td className="py-3 px-4"><ApproveButton id={res.id} onApprove={onApprove} approvingId={approvingId} /></td>
+                <td className="py-3 px-4"><ViewButton onView={() => onView(res)} /></td>
             </tr>
         ))}
     </TableWrapper>
 );
 
-const BlogTable: React.FC<{blogs: Blog[], onApprove: (id: string) => void, approvingId: string | null}> = ({ blogs, onApprove, approvingId }) => (
+const BlogTable: React.FC<{blogs: Blog[], onView: (blog: Blog) => void}> = ({ blogs, onView }) => (
      <TableWrapper headers={["Author", "Title", "Status", "Action"]}>
         {blogs.map(blog => (
             <tr key={blog.id} className="border-b border-gray-200 hover:bg-gray-50">
                 <td className="py-3 px-4">{blog.author.name}</td>
                 <td className="py-3 px-4">{blog.title}</td>
                 <td className="py-3 px-4"><StatusBadge text={blog.status} /></td>
-                <td className="py-3 px-4"><ApproveButton id={blog.id} onApprove={onApprove} approvingId={approvingId} /></td>
+                <td className="py-3 px-4"><ViewButton onView={() => onView(blog)} /></td>
             </tr>
         ))}
     </TableWrapper>
@@ -165,9 +175,15 @@ const TableWrapper: React.FC<{headers: string[], children: React.ReactNode}> = (
     </div>
 );
 
-const ApproveButton: React.FC<{id: string, onApprove: (id: string) => void, approvingId: string | null}> = ({ id, onApprove, approvingId }) => (
-    <button onClick={() => onApprove(id)} disabled={approvingId === id} className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors disabled:bg-green-300 flex items-center justify-center w-28">
+const ApproveButton: React.FC<{id: string, onApprove: () => void, approvingId: string | null}> = ({ id, onApprove, approvingId }) => (
+    <button onClick={onApprove} disabled={approvingId === id} className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors disabled:bg-green-300 flex items-center justify-center w-28">
         {approvingId === id ? <Spinner /> : 'Approve'}
+    </button>
+);
+
+const ViewButton: React.FC<{onView: () => void}> = ({ onView }) => (
+     <button onClick={onView} className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors text-sm font-semibold">
+        View & Approve
     </button>
 );
 

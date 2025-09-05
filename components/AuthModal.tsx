@@ -5,9 +5,11 @@ import Signup from './Signup';
 interface AuthModalProps {
     initialMode: 'login' | 'signup';
     onClose: () => void;
+    invitationToken?: string | null;
+    onViewPolicy: () => void;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ initialMode, onClose }) => {
+const AuthModal: React.FC<AuthModalProps> = ({ initialMode, onClose, invitationToken, onViewPolicy }) => {
     const [mode, setMode] = useState(initialMode);
 
     useEffect(() => {
@@ -43,7 +45,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ initialMode, onClose }) => {
                 {mode === 'login' ? (
                     <Login onSwitchToSignup={() => setMode('signup')} />
                 ) : (
-                    <Signup onSwitchToLogin={() => setMode('login')} />
+                    <Signup onSwitchToLogin={() => setMode('login')} invitationToken={invitationToken} onViewPolicy={onViewPolicy} />
                 )}
             </div>
         </div>

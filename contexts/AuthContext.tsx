@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { User } from '../types';
 import { login as apiLogin, signup as apiSignup } from '../services/mockApi';
@@ -7,7 +6,8 @@ interface AuthContextType {
     user: User | null;
     login: (email: string, password: string) => Promise<void>;
     logout: () => void;
-    signup: (name: string, email: string, password: string) => Promise<void>;
+    signup: (name: string, email: string, password: string, invitationToken?: string) => Promise<void>;
+    updateUser: (updatedUser: User) => void;
     loading: boolean;
 }
 
@@ -49,12 +49,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(null);
     };
 
-    const signup = async (name: string, email: string, password: string) => {
-        await apiSignup(name, email, password);
+    const signup = async (name: string, email: string, password: string, invitationToken?: string) => {
+        await apiSignup(name, email, password, invitationToken);
+    };
+
+    const updateUser = (updatedUser: User) => {
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, signup, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, signup, updateUser, loading }}>
             {!loading && children}
         </AuthContext.Provider>
     );

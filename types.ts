@@ -1,8 +1,18 @@
 
+
 export enum Role {
     ADMIN = 'ADMIN',
     NURSE = 'NURSE',
     PENDING = 'PENDING',
+}
+
+// FIX: Added a shared View type to resolve type conflicts.
+export type View = 'FEED' | 'ADMIN' | 'PROFILE' | 'RESOURCES' | 'BLOGS' | 'SINGLE_POST' | 'LOGIN' | 'SIGNUP' | 'SINGLE_RESOURCE' | 'SINGLE_BLOG' | 'INVITATIONS';
+
+export enum DisplayNamePreference {
+    FullName = 'FullName',
+    Initials = 'Initials',
+    Anonymous = 'Anonymous',
 }
 
 export interface User {
@@ -11,6 +21,11 @@ export interface User {
     email: string;
     role: Role;
     avatarUrl: string;
+    title?: string;
+    department?: string;
+    state?: string;
+    bio?: string;
+    profileCompletionPercentage?: number;
 }
 
 export enum ReactionType {
@@ -36,6 +51,8 @@ export interface Post {
     id: string;
     author: User;
     text: string;
+    tags?: string[];
+    displayName?: string;
     mediaUrl?: string;
     mediaType?: 'image' | 'video';
     createdAt: string;
@@ -70,7 +87,7 @@ export interface Blog {
     author: User;
     title: string;
     content: string;
-    cover_image_url?: string;
+    coverImageUrl?: string;
     status: ContentStatus;
     created_at: string;
 }
@@ -94,4 +111,13 @@ export type MessageSender = 'USER' | 'AI';
 export interface ChatMessage {
     sender: MessageSender;
     text: string;
+}
+
+export type InvitationStatus = 'PENDING' | 'ACCEPTED';
+
+export interface Invitation {
+    id: string;
+    invitee_email: string;
+    status: InvitationStatus;
+    created_at: string;
 }

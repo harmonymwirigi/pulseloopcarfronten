@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { getAiChatResponse } from '../services/mockApi';
 import { ChatMessage } from '../types';
 
+// Let TypeScript know that 'marked' is available on the window object
+declare const marked: any;
+
 const Chatbot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -75,7 +78,14 @@ const Chatbot: React.FC = () => {
                             {messages.map((msg, index) => (
                                 <div key={index} className={`flex ${msg.sender === 'USER' ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-xs px-4 py-2 rounded-lg ${msg.sender === 'USER' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-800'}`}>
-                                        {msg.text}
+                                       {msg.sender === 'AI' && typeof marked !== 'undefined' ? (
+                                            <div
+                                                className="ai-message-content"
+                                                dangerouslySetInnerHTML={{ __html: marked.parse(msg.text) }}
+                                            />
+                                        ) : (
+                                            <p>{msg.text}</p>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -115,6 +125,23 @@ const Chatbot: React.FC = () => {
                     </div>
                 </div>
             </div>
+             <style>{`
+                .ai-message-content p { margin-bottom: 0.5rem; }
+                .ai-message-content p:last-child { margin-bottom: 0; }
+                .ai-message-content a { color: #0d9488; text-decoration: underline; }
+                .ai-message-content a:hover { color: #0f766e; }
+                .ai-message-content h1, .ai-message-content h2, .ai-message-content h3 { font-weight: bold; margin-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.25rem; }
+                .ai-message-content h1 { font-size: 1.1rem; }
+                .ai-message-content h2 { font-size: 1rem; }
+                .ai-message-content h3 { font-size: 0.9rem; }
+                .ai-message-content ul, .ai-message-content ol { padding-left: 1.25rem; margin-bottom: 0.5rem; }
+                .ai-message-content ul { list-style-type: disc; }
+                .ai-message-content ol { list-style-type: decimal; }
+                .ai-message-content li { margin-bottom: 0.25rem; }
+                .ai-message-content strong { font-weight: 700; }
+                .ai-message-content em { font-style: italic; }
+                .ai-message-content code { background-color: #e5e7eb; padding: 0.1rem 0.3rem; border-radius: 0.25rem; font-size: 0.85em; }
+            `}</style>
         </>
     );
 };

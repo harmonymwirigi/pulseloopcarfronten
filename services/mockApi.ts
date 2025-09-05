@@ -1,4 +1,5 @@
-import { User, Post, Comment, Reaction, ReactionType, Resource, Blog, CreateResourceData, CreateBlogData, ChatMessage } from '../types';
+
+import { User, Post, Comment, ReactionType, Resource, Blog, CreateResourceData, CreateBlogData, ChatMessage, DisplayNamePreference, Invitation } from '../types';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
@@ -45,29 +46,66 @@ export const login = async (email: string, password: string): Promise<{ accessTo
     return handleApiResponse(response);
 };
 
-export const signup = async (name: string, email: string, password: string): Promise<{ message: string }> => {
+export const signup = async (name: string, email: string, password: string, invitationToken?: string): Promise<{ message: string }> => {
     const response = await fetch(`${API_BASE_URL}/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, invitationToken }),
     });
     return handleApiResponse(response);
 };
 
 export const getUserById = (userId: string): Promise<User> => fetchWithAuth(`/users/${userId}`);
 
-// --- POSTS ---
-export const getPosts = (): Promise<Post[]> => fetchWithAuth('/posts');
+// --- USER PROFILE ---
+export interface UpdateProfileData {
+    title?: string;
+    department?: string;
+    state?: string;
+    bio?: string;
+}
 
-export const createPost = (authorId: string, text: string, mediaFile: File | null): Promise<Post> => {
+export const updateProfile = (data: UpdateProfileData): Promise<User> => {
+    return fetchWithAuth('/profile', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+};
+
+export const updateAvatar = (avatarFile: File): Promise<User> => {
+    const formData = new FormData();
+    formData.append('avatarFile', avatarFile);
+    return fetchWithAuth('/profile/avatar', {
+        method: 'POST',
+        body: formData,
+    });
+};
+
+
+// --- POSTS ---
+export const getPosts = (tag?: string): Promise<Post[]> => {
+    const endpoint = tag ? `/posts?tag=${encodeURIComponent(tag)}` : '/posts';
+    return fetchWithAuth(endpoint);
+};
+
+export const createPost = (text: string, mediaFile: File | null, displayNamePreference: DisplayNamePreference, tags: string[]): Promise<Post> => {
     const formData = new FormData();
     formData.append('text', text);
+    formData.append('displayNamePreference', displayNamePreference);
+    formData.append('tags', JSON.stringify(tags)); // Send tags as a JSON string array
     if (mediaFile) {
         formData.append('mediaFile', mediaFile);
     }
     return fetchWithAuth('/posts', {
         method: 'POST',
         body: formData,
+    });
+};
+
+export const updatePost = (postId: string, text: string, tags: string[]): Promise<Post> => {
+    return fetchWithAuth(`/posts/${postId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ text, tags }),
     });
 };
 
@@ -138,4 +176,19 @@ export const getAiChatResponse = (message: string, history: ChatMessage[]): Prom
         method: 'POST',
         body: JSON.stringify({ message, history }),
     });
+};
+
+// --- INVITATIONS ---
+export const getSentInvitations = (): Promise<Invitation[]> => fetchWithAuth('/invitations/sent');
+
+export const sendInvitation = (email: string): Promise<{ message: string }> => {
+    return fetchWithAuth('/invitations', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+    });
+};
+
+export const validateInvitationToken = async (token: string): Promise<{ email: string }> => {
+    const response = await fetch(`${API_BASE_URL}/invitations/${token}`);
+    return handleApiResponse(response);
 };
